@@ -1,4 +1,4 @@
-local vars = require("variables")
+local vars = require("config.variables")
 
 -- Themes
 hl.env("QT_QPA_PLATFORMTHEME", "qtengine")

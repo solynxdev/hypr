@@ -1,4 +1,4 @@
-local scheme = require("scheme.current")
+require("config.colors")
 
 return {
     ------------------
@@ -6,53 +6,35 @@ return {
     ------------------
 
     -- Apps
-    terminal                   = "kitty",
-    browser                    = "app.zen_browser.zen",
-    editor                     = "zeditor",
-    fileExplorer               = "thunar",
-    audioSettings              = "pavucontrol",
+    terminal      = "kitty",
+    browser       = "/opt/zen-browser-bin/zen-bin",
+    editor        = "zeditor",
+    fileExplorer  = "thunar",
+    audioSettings = "pavucontrol",
 
-    -- Touchpad
-    touchpadDisableTyping      = true,
-    touchpadScrollFactor       = 0.3,
-    gestureFingers             = 3,
-    workspaceSwipeFingers      = 4,
-    gestureFingersMore         = 4,
+    -- Touchpad / gestures
+    touchpadDisableTyping = true,
+    touchpadScrollFactor  = 0.3,
+    gestureFingers        = 3,
+    workspaceSwipeFingers = 3,
+    gestureFingersMore    = 4,
+    sleepGestureCmd       = "systemctl suspend-then-hibernate",
 
-    -- Blur
-    blurEnabled                = true,
-    blurSpecialWs              = false,
-    blurPopups                 = true,
-    blurInputMethods           = true,
-    blurSize                   = 8,
-    blurPasses                 = 2,
-    blurXray                   = false,
+    -- Cursor
+    cursorTheme = "Vision-White",
+    cursorSize  = 24,
 
-    -- Shadow
-    shadowEnabled              = true,
-    shadowRange                = 15,
-    shadowRenderPower          = 4,
-    shadowColour               = "rgba(" .. scheme.inversePrimary .. "10)",
+    -- Volume
+    volumeStep = 10,
+    volumeMax  = 100,
 
-    -- Gaps
-    workspaceGaps              = 10,
-    windowGapsIn               = 5,
-    windowGapsOut              = 10,
-    singleWindowGapsOut        = 10,
+    -- Window styling (used by rules.lua)
+    windowOpacity       = 0.95,
+    windowRounding      = 16,
 
-    -- Window styling
-    windowOpacity              = 0.95,
-    windowRounding             = 15,
-    windowBorderSize           = 1,
-    activeWindowBorderColour   = "rgba(" .. scheme.primary .. "e6)",
-    inactiveWindowBorderColour = "rgba(" .. scheme.onSurfaceVariant .. "11)",
-
-    -- Misc
-    volumeStep                 = 10,
-    volumeMax                  = 100,
-    cursorTheme                = "sweet-cursors",
-    cursorSize                 = 24,
-    sleepGestureCmd            = "systemctl suspend-then-hibernate",
+    windowBorderSize           = 0,
+    activeWindowBorderColour   = "rgba(" .. theme_colour("blue", "c2c1ff") .. "e6)",
+    inactiveWindowBorderColour = "rgba(" .. theme_colour("subtext0", "c8c5d1") .. "11)",
 
     ------------------
     ---- KEYBINDS ----
@@ -105,9 +87,9 @@ return {
     -- Special workspaces toggles
     kbSpecialWs                = "SUPER + S",
     kbSystemMonitorWs          = "CTRL + SHIFT + Escape",
-    kbMusicWs                  = "SUPER + M",
+    kbMusicWs                  = "SUPER + R",
     kbCommunicationWs          = "SUPER + D",
-    kbTodoWs                   = "SUPER + R",
+    kbTodoWs                   = "SUPER + M",
 
     -- Apps
     kbTerminal                 = "SUPER + E",

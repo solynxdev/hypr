@@ -1,4 +1,4 @@
-local vars = require("variables")
+local vars = require("config.variables")
 
 -- Tags an array of window matches. If `field` is given, matches should be an
 -- array of strings. Otherwise, it should be an array of tables.
@@ -45,7 +45,7 @@ hl.window_rule({ match = { fullscreen = false }, opacity = vars.windowOpacity ..
 -- Center all floating windows except xwayland windows (xwayland popups count as windows)
 hl.window_rule({ match = { float = true, xwayland = false }, center = true })
 
--- Picture in picture (move and resize done via resizer in execs.lua)
+-- Picture in picture (move and resize done via resizer in utils/functions.lua)
 hl.window_rule({
     match             = { title = "Picture(-| )in(-| )[Pp]icture" },
     move              = "(monitor_w*0.98-window_w) (monitor_h*0.97-window_h)", -- Initial move so window doesn't jump so much
@@ -62,8 +62,8 @@ hl.window_rule({
 -- Opaque apps
 tagged_rule(opaque_tag, {
     "foot",                          -- Terminal
-    "equibop",                       -- Discord client
     "org.quickshell",                -- Quickshell
+    "equibop",                       -- Discord client
     "feh|imv|swappy",                -- Image viewers
     "krita|gimp|inkscape|darktable", -- Image editors
     "resolve|kdenlive|shotcut",      -- Video editors
@@ -197,14 +197,6 @@ create_tag(communication_app_tag, { workspace = "special:communication" })
 create_tag(todo_app_tag, { workspace = "special:todo" })
 
 
--------------------------
----- Workspace rules ----
--------------------------
-
-hl.workspace_rule({ workspace = "w[tv1]s[false]", gaps_out = vars.singleWindowGapsOut })
-hl.workspace_rule({ workspace = "f[1]s[false]", gaps_out = vars.singleWindowGapsOut })
-
-
 ---------------------
 ---- Layer rules ----
 ---------------------
@@ -215,6 +207,7 @@ hl.layer_rule({ match = { namespace = "selection" }, animation = "fade" })      
 hl.layer_rule({ match = { namespace = "wayfreeze" }, animation = "fade" })                  -- wayfreeze
 hl.layer_rule({ match = { namespace = "launcher" }, animation = "popin 80%", blur = true }) -- Fuzzel
 
--- Shell
-hl.layer_rule({ match = { namespace = "caelestia-(border-exclusion|area-picker)" }, no_anim = true })
-hl.layer_rule({ match = { namespace = "caelestia-(drawers|background)" }, animation = "fade" })
+-- larpantinum shell layers
+hl.layer_rule({ match = { namespace = "qs-dock-exclusion" }, no_anim = true })
+hl.layer_rule({ match = { namespace = "qs-(popups|floating-overlay)" }, animation = "fade" })
+hl.layer_rule({ match = { namespace = "wallpaper-bg" }, animation = "fade" })

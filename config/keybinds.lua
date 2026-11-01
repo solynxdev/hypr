@@ -1,8 +1,6 @@
-local vars = require("variables")
+local vars = require("config.variables")
 local fn   = require("utils.functions")
 
-
--- Flags
 local locked           = { locked = true }
 local mouse            = { mouse = true }
 local release          = { release = true }
@@ -15,6 +13,11 @@ end
 
 local function valid_keybind(key)
     return type(key) == "string" and key:match("%S") ~= nil
+end
+
+-- larpantinum is the shell that is autostarted (see config/autostart.lua)
+local larpantinum = function(...)
+    return hl.dsp.exec_cmd("larpantinum " .. table.concat({ ... }, " "))
 end
 
 local function repeating_unless_mouse(key)
@@ -41,7 +44,21 @@ local function create_bind(keybinds, action, flags)
     end
 
     for _, key in ipairs(flatten_keybinds(keybinds)) do
-        hl.bind(key, action, get_flags(key))
+        local normalized = normalise_keybind(key)
+        local isLauncherModifier = normalized == normalise_keybind("SUPER_L")
+            or normalized == normalise_keybind("SUPER + SUPER_L")
+        local isSuperChord = normalized:find("super", 1, true) ~= nil and not isLauncherModifier
+
+        if isSuperChord then
+            local bindFlags = {}
+            for flag, value in pairs(get_flags(key) or {}) do
+                bindFlags[flag] = value
+            end
+            bindFlags.non_consuming = false
+            hl.bind(key, action, bindFlags)
+        else
+            hl.bind(key, action, get_flags(key))
+        end
     end
 end
 
@@ -49,34 +66,58 @@ local function extend_keybind(base, suffix)
     return valid_keybind(base) and base .. " + " .. suffix or nil
 end
 
--- Launcher
-local launcher_default = normalise_keybind("SUPER + SUPER_L")
-create_bind(
-    vars.kbLauncher,
-    hl.dsp.global("caelestia:launcher"),
-    function(key)
-        return normalise_keybind(key) == launcher_default and release or nil
+local superKeyCodes = { [133] = true, [134] = true } -- xkb: left/right Super
+local heldSuperKeys = {}
+local superChordUsed = false
+
+local function anySuperDown()
+    for code, down in pairs(heldSuperKeys) do
+        if down then
+            return true
+        end
     end
-)
+    return false
+end
 
--- Misc
-create_bind(vars.kbSession, hl.dsp.global("caelestia:session"))
-create_bind(vars.kbShowSidebar, hl.dsp.global("caelestia:sidebar"))
-create_bind(vars.kbClearNotifs, hl.dsp.global("caelestia:clearNotifs"), locked)
-create_bind(vars.kbShowPanels, hl.dsp.global("caelestia:showall"))
-create_bind(vars.kbLock, hl.dsp.global("caelestia:lock"))
+hl.on("input.keyboard.key", function(code, _, state)
+    if superKeyCodes[code] then
+        heldSuperKeys[code] = state ~= 0
 
--- Restore lock
-create_bind(vars.kbRestoreLock, function()
-    hl.dispatch(hl.dsp.exec_cmd("caelestia shell -d"))
-    hl.dispatch(hl.dsp.global("caelestia:lock"))
+        -- Last Super key released after a clean tap -> open/close the launcher.
+        if state == 0 and not superChordUsed and not anySuperDown() then
+            hl.dispatch(larpantinum("msg toggle launcher"))
+        end
+
+        if not anySuperDown() then
+            superChordUsed = false -- fresh state for the next tap
+        end
+        return
+    end
+
+    if state == 1 and anySuperDown() then
+        superChordUsed = true -- any other key while Super is held = a chord, not a tap
+    end
 end)
 
+-- larpantinum surfaces
+create_bind("SUPER + SPACE", larpantinum("msg toggle launcher"))
+create_bind("SUPER + SHIFT + W", larpantinum("msg open wallpaper"))
+
+-- Misc
+create_bind(vars.kbSession, larpantinum("msg open system"))
+create_bind(vars.kbShowSidebar, larpantinum("ipc call floating toggleSidebar"))
+create_bind(vars.kbClearNotifs, larpantinum("ipc call main clearNotifications"), locked)
+create_bind(vars.kbShowPanels, larpantinum("msg open guide"))
+create_bind(vars.kbLock, larpantinum("lock"))
+
+-- Restore lock
+create_bind(vars.kbRestoreLock, larpantinum("lock"))
+
 -- Kill/restart
-create_bind("CTRL + SUPER + SHIFT + R", hl.dsp.exec_cmd("qs -c caelestia kill"), release)
+create_bind("CTRL + SUPER + SHIFT + R", hl.dsp.exec_cmd("larpantinum kill"), release)
 create_bind(
     "CTRL + SUPER + ALT + R",
-    hl.dsp.exec_cmd("qs -c caelestia kill; sleep .1; caelestia shell -d"),
+    hl.dsp.exec_cmd("larpantinum kill; sleep 0.2; larpantinumd start"),
     release
 )
 
@@ -164,23 +205,23 @@ create_bind(vars.kbFileExplorer, hl.dsp.exec_cmd(vars.fileExplorer))
 create_bind(vars.kbAudioSettings, hl.dsp.exec_cmd(vars.audioSettings))
 
 -- Utilities
-create_bind(vars.kbScreenshot, hl.dsp.exec_cmd("caelestia screenshot"), locked)
-create_bind(vars.kbScreenshotFreeze, hl.dsp.global("caelestia:screenshotFreeze"))
-create_bind(vars.kbScreenshotRegion, hl.dsp.global("caelestia:screenshot"))
-create_bind(vars.kbRecord, hl.dsp.exec_cmd("caelestia record"))
-create_bind(vars.kbRecordSound, hl.dsp.exec_cmd("caelestia record -s"))
-create_bind(vars.kbRecordRegion, hl.dsp.exec_cmd("caelestia record -r"))
+create_bind(vars.kbScreenshot, hl.dsp.exec_cmd("larpantinum screenshot --full"), locked)
+create_bind(vars.kbScreenshotFreeze, hl.dsp.exec_cmd("larpantinum screenshot"))
+create_bind(vars.kbScreenshotRegion, hl.dsp.exec_cmd("larpantinum screenshot"))
+create_bind(vars.kbRecord, hl.dsp.exec_cmd("larpantinum screenshot --record --full --desk-mute true --mic-mute true"))
+create_bind(vars.kbRecordSound, hl.dsp.exec_cmd("larpantinum screenshot --record --full"))
+create_bind(vars.kbRecordRegion, hl.dsp.exec_cmd("larpantinum ipc call screenshotOverlay toggle \"\" false \"1.0,false,1.0,false,\" \"\" \"\" true \"gpu-screen-recorder\" \"\""))
 create_bind(vars.kbColorPicker, hl.dsp.exec_cmd("hyprpicker -a"))
 
 -- Brightness
-create_bind("XF86MonBrightnessUp", hl.dsp.global("caelestia:brightnessUp"), locked)
-create_bind("XF86MonBrightnessDown", hl.dsp.global("caelestia:brightnessDown"), locked)
+create_bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("larpantinum brightness raise"), locked)
+create_bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("larpantinum brightness lower"), locked)
 
 -- Media
-create_bind({ vars.kbMediaToggle, "XF86AudioPlay", "XF86AudioPause" }, hl.dsp.global("caelestia:mediaToggle"), locked)
-create_bind({ vars.kbMediaNext, "XF86AudioNext" }, hl.dsp.global("caelestia:mediaNext"), locked)
-create_bind({ vars.kbMediaPrev, "XF86AudioPrev" }, hl.dsp.global("caelestia:mediaPrev"), locked)
-create_bind({ vars.kbMediaStop, "XF86AudioStop" }, hl.dsp.global("caelestia:mediaStop"), locked)
+create_bind({ vars.kbMediaToggle, "XF86AudioPlay", "XF86AudioPause" }, hl.dsp.exec_cmd("playerctl play-pause"), locked)
+create_bind({ vars.kbMediaNext, "XF86AudioNext" }, hl.dsp.exec_cmd("playerctl next"), locked)
+create_bind({ vars.kbMediaPrev, "XF86AudioPrev" }, hl.dsp.exec_cmd("playerctl previous"), locked)
+create_bind({ vars.kbMediaStop, "XF86AudioStop" }, hl.dsp.exec_cmd("playerctl stop"), locked)
 
 -- Volume
 create_bind({ vars.kbVolumeMute, "XF86AudioMute" }, hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"), locked)
@@ -205,9 +246,9 @@ create_bind(
 create_bind(vars.kbSleep, hl.dsp.exec_cmd(vars.sleepGestureCmd), locked)
 
 -- Clipboard and emoji picker
-create_bind(vars.kbClipboard, hl.dsp.exec_cmd("pkill fuzzel || caelestia clipboard"))
-create_bind(vars.kbClipboardDel, hl.dsp.exec_cmd("pkill fuzzel || caelestia clipboard -d"))
-create_bind(vars.kbEmoji, hl.dsp.exec_cmd("pkill fuzzel || caelestia emoji -p"))
+create_bind(vars.kbClipboard, hl.dsp.exec_cmd("larpantinum msg toggle clipboard"))
+create_bind(vars.kbClipboardDel, hl.dsp.exec_cmd("larpantinum msg toggle clipboard"))
+create_bind(vars.kbEmoji, hl.dsp.exec_cmd("echo 2 > ~/.cache/larpantinum/launcher/last_tab.txt; larpantinum msg open launcher"))
 create_bind(
     vars.kbClipboardPasteLatest,
     hl.dsp.exec_cmd('sleep 0.5s && ydotool type -d 1 "$(cliphist list | head -1 | cliphist decode)"'),

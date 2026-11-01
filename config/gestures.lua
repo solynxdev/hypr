@@ -1,4 +1,4 @@
-local vars = require("variables")
+local vars = require("config.variables")
 local fn   = require("utils.functions")
 
 hl.config({
